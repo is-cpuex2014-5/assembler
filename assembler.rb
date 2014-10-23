@@ -2,11 +2,69 @@ class Assembler
 	def initialize
 		@codes = []
 		@labels = {}
-		@macros = [
-			"mov", "li", "lis", "addil", "addih",
-			"call", "ret",
-			"sll", "srl", "sla", "sra", "slli", "srli", "slai", "srai"
-		]
+		@macros = {
+			mov:	[	"add	%1%,	%2%,	$r00,	0"	],
+			li:		[	"addi	%1%,	$r00,	L,	%2%"	],
+			lis:	[	"addi	%1%,	$r00,	H,	%2%"	],
+			addil:	[	"addi	%1%,	%2%,	L,	%3%"	],
+			addih:	[	"addi	%1%,	%2%,	H,	%3%"	],
+			call:	[	"addi	$r11,	$r15,	4",
+						"store	$r11,	$r14,	0",
+						"addi	$r14,	$r14,	4",
+						"beq	$r00,	$r00,	%1%"	],
+			ret:	[	"subi	$r14,	$r14,	4",
+						"load	$r15,	$r14,	0"	],
+			sll:	[	"shift	%1%,	%2%,	%3%,	0,	l,	logic"	],
+			srl:	[	"shift	%1%,	%2%,	%3%,	0,	r,	logic"	],
+			sla:	[	"shift	%1%,	%2%,	%3%,	0,	l,	arith"	],
+			sra:	[	"shift	%1%,	%2%,	%3%,	0,	r,	arith"	],
+			slli:	[	"shifti	%1%,	%2%,	$r00,	%3%,	l,	logic"	],
+			srli:	[	"shifti	%1%,	%2%,	$r00,	%3%,	r,	logic"	],
+			slai:	[	"shifti	%1%,	%2%,	$r00,	%3%,	l,	arith"	],
+			srai:	[	"shifti	%1%,	%2%,	$r00,	%3%,	r,	arith"	],
+		}
+		@instructions = {
+			add:	[	"0000000",	:reg,	:reg,	:reg,	:imm13	],
+			addi:	[	"0000001",	:reg,	:reg,	:hl,	:imm16	],
+			sub:	[	"0000010",	:reg,	:reg,	:reg	],
+			subi:	[	"0000011",	:reg,	:reg,	"0",	:imm16	],
+			not:	[	"0000100",	:reg,	:reg,	:reg,	"0000000000000"	],
+			and:	[	"0000110",	:reg,	:reg,	:reg,	"0000000000000"	],
+			or:		[	"0001000",	:reg,	:reg,	:reg,	"0000000000000"	],
+			xor:	[	"0001010",	:reg,	:reg,	:reg,	"0000000000000"	],
+			nand:	[	"0001100",	:reg,	:reg,	:reg,	"0000000000000"	],
+			nor:	[	"0001110",	:reg,	:reg,	:reg,	"0000000000000"	],
+			shift:	[	"0010000",	:reg,	:reg,	:reg,	:imm05,	:lr,	:la	],
+			shifti:	[	"0010001",	:reg,	:reg,	:reg,	:imm05,	:lr,	:la	],
+
+			fadd:	[	"0100000",	:reg,	:reg,	:reg,	"0000000000000"	],
+			fsub:	[	"0100010",	:reg,	:reg,	:reg,	"0000000000000"	],
+			fmul:	[	"0100100",	:reg,	:reg,	:reg,	"0000000000000"	],
+			fdiv:	[	"0100110",	:reg,	:reg,	:reg,	"0000000000000"	],
+			fsqrt:	[	"0101000",	:reg,	:reg,	"00000000000000000"	],
+			ftoi:	[	"0101010",	:reg,	:reg,	"00000000000000000"	],
+			itof:	[	"0101100",	:reg,	:reg,	"00000000000000000"	],
+			fneg:	[	"0101110",	:reg,	:reg,	"00000000000000000"	],
+			finv:	[	"0110000",	:reg,	:reg,	"00000000000000000"	],
+
+			beq:	[	"1000000",	:reg,	:reg,	:reg,	"0000000000000"	],
+			beqi:	[	"1000001",	:reg,	:reg,	:lb	],
+			blt:	[	"1000010",	:reg,	:reg,	:reg,	"0000000000000"	],
+			blti:	[	"1000011",	:reg,	:reg,	:lb	],
+			bfeq:	[	"1000100",	:reg,	:reg,	:reg,	"0000000000000"	],
+			bfeqi:	[	"1000101",	:reg,	:reg,	:lb	],
+			bflt:	[	"1000110",	:reg,	:reg,	:reg,	"0000000000000"	],
+			bflti:	[	"1000111",	:reg,	:reg,	:lb	],
+
+			load:	[	"1100000",	:reg,	:reg,	:imm17	],
+			store:	[	"1100010",	:reg,	:reg,	:imm17	],
+			# fload:	[	"1100100",	:reg,	:reg,	:reg	],
+			# fstore:	[	"1100110",	:reg,	:reg,	:reg	],
+			loadr:	[	"1101000",	:reg,	:reg,	:reg,	"0000000000000"	],
+			storer:	[	"1101010",	:reg,	:reg,	:reg,	"0000000000000"	],
+			# floadr:	[	"1101100",	:reg,	:reg,	:reg	],
+			# fstorer:	[	"1101110",	:reg,	:reg,	:reg	],
+		}
 	end
 
 	def run filename
@@ -40,7 +98,7 @@ class Assembler
 		head = code.split[0]
 		return :blank unless head
 		return :dot if head[0] == "."
-		return :macro if @macros.include? head
+		return :macro if @macros.keys.include? head.to_sym
 		return :label if head[-1] == ":"
 		return :native
 	end
@@ -64,9 +122,8 @@ class Assembler
 		# 命令とレジスタとラベルの展開
 		ascii = ""
 		@codes.each_with_index do |code, i|
-			tmp = encode_line(code)
-			ascii << tmp
-			# p "000#{i} : "[-7,7] << tmp << code.gsub(/( |\n|\n|\r|\t)+/," ")
+			ascii << encode_line(code)
+			# printf "%04d : %08x %s\n", i, encode_line(code).to_i(2), code.gsub(/( |\n|\n|\r|\t)+/," ")
 		end
 		return ascii
 	end 
@@ -74,7 +131,7 @@ class Assembler
 	def bin2ascii str
 		a = str.scan(/.{1,8}/)
 		a = a.map { |s| ("0b" + s).to_i(0) }
-		ret = a.inject("") { |out, i | out = i.chr + out}  
+		ret = a.inject("") { |out, i | out += i.chr }  
 	end
 
 	def remove_comment_of line
@@ -86,151 +143,58 @@ class Assembler
 	end
 
 	def expand_macro line
-		line.delete! ","
-		e = line.split
-		case e[0]
-		when "mov" # mov $d $s	-> add $d $s $0 0
-			"add #{e[1]}, #{e[2]}, $r00, 0"
-		when "li" # li $d imm -> addi $d $0 L imm
-			"addi #{e[1]}, $r00, L, #{e[2]}"
-		when "lis" # lis $d imm -> addi $d $0 H imm
-			"addi #{e[1]}, $r00, H, #{e[2]}"
-		when "addil" # addil $d $s imm -> addi $d $s L imm
-			"addi #{e[1]}, #{e[2]}, L, #{e[3]}"
-		when "addih" # addih $d $s imm -> addi $d $s H imm
-			"addi #{e[1]}, #{e[2]}, H, #{e[3]}"
-		when "call"
-			[
-				"addi  $r11, $r15, 4",
-				"store $r11, $r14, 0",
-				"addi  $r14, $r14, 4",
-				"beq   $r00, $r00, #{e[1]}"
-			]
-		when "ret"
-			[
-				"subi  $r14, $r14, 4",
-				"load  $r15, $r14, 0"
-			]
-	   	when "sll" # sll $d, $s, $s -> shift $d, $s, $s, 0, l, logic
-	   		"shift #{e[1]}, #{e[2]}, #{e[3]}, 0, l, logic"
-	   	when "srl" # srl $d, $s, $s -> shift $d, $s, $s, 0, r, logic
-	   		"shift #{e[1]}, #{e[2]}, #{e[3]}, 0, r, logic"
-	   	when "sla" # sla $d, $s, $s -> shift $d, $s, $s, 0, l, arith
-	   		"shift #{e[1]}, #{e[2]}, #{e[3]}, 0, l, arith"
-	   	when "sra" # sra $d, $s, $s -> shift $d, $s, $s, 0, r, arith
-	   		"shift #{e[1]}, #{e[2]}, #{e[3]}, 0, r, arith"
-	   	when "slli" # slli $d, $s, im -> shift $d, $s, $00, im, l, logic
-	   		"shifti #{e[1]}, #{e[2]}, $r00, #{e[3]}, l, logic"
-	   	when "srli" # srli $d, $s, im -> shift $d, $s, $00, im, r, logic
-	   		"shifti #{e[1]}, #{e[2]}, $r00, #{e[3]}, r, logic"
-	   	when "slai" # slai $d, $s, im -> shift $d, $s, $00, im, l, arith
-	   		"shifti #{e[1]}, #{e[2]}, $r00, #{e[3]}, l, arith"
-	   	when "srai" # srai $d, $s, im -> shift $d, $s, $00, im, r, arith
-	   		"shifti #{e[1]}, #{e[2]}, $r00, #{e[3]}, r, arith"
+		opes = (line.gsub ",", "").split
+		structure = @macros[opes.shift.to_sym].join("\n")
+		raise "unknown macro: #{(line.gsub ",", "").split[0]}" unless structure
+		opes.each_with_index do |ope, i|
+			structure.sub!("%#{i+1}%", ope)
 		end
+		structure.split("\n")
 	end
 
 	def encode_line line
-		line.delete! ","
-		e = line.split
-		case e[0]
-		when "add"
-			"0000000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << bin_of(:int, e[4], 13)
-		when "addi"
-			"0000001" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:LH, e[3]) << bin_of(:int, e[4], 16)
-		when "sub"
-			"0000010" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3])
-		when "subi"
-			"0000011" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << "0" << bin_of(:int, e[3], 16)
-		when "not"
-			"0000100" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "and"
-			"0000110" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "or"
-			"0001000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "xor"
-			"0001010" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "nand"
-			"0001100" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "nor"
-			"0001110" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "shift"
-			"0010000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << bin_of(:int, e[4], 5) << bin_of(:lr, e[5]) << bin_of(:la, e[6])
-		when "shifti"
-			"0010001" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << bin_of(:int, e[4], 5) << bin_of(:lr, e[5]) << bin_of(:la, e[6])
+		opes = (line.gsub ",", "").split
+		structure = @instructions[opes.shift.to_sym]
+		raise "unknown opecode: #{(line.gsub ",", "").split[0]}" unless structure
 
-		when "fadd"
-			"0100000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "fsub"
-			"0100010" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "fmul"
-			"0100100" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "fdiv"
-			"0100110" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "fsqrt"
-			"0101000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << "00000000000000000"
-		when "ftoi"
-			"0101010" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << "00000000000000000"
-		when "itof"
-			"0101100" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << "00000000000000000"
-		when "fneg"
-			"0101110" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << "00000000000000000"
-		when "finv"
-			"0110000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << "00000000000000000"
-
-		when "beq"
-			"1000000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "beqi"
-			"1000001" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:lb, e[3])
-		when "blt"
-			"1000010" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "blti"
-			"1000011" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:lb, e[3])
-		when "bfeq"
-			"1000100" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "bfeqi"
-			"1000101" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:lb, e[3])
-		when "bflt"
-			"1000110" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "bflti"
-			"1000111" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:lb, e[3])
-
-		when "load"
-			"1100000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:int, e[3], 17)
-		when "store"
-			"1100010" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:int, e[3], 17)
-		# when "fload"
-		# 	"1100100" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3])
-		# when "fstore"
-		# 	"1100110" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3])
-		when "loadr"
-			"1101000" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		when "storer"
-			"1101010" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3]) << "0000000000000"
-		# when "floadr"
-		# 	"1101100" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3])
-		# when "fstorer"
-		# 	"1101110" << bin_of(:reg, e[1]) << bin_of(:reg, e[2]) << bin_of(:reg, e[3])
-		else
-			raise "unknown opecode"
+		structure.inject("") do |acc, elm|
+			case elm
+			when Symbol
+				acc + bin_of(elm, opes.shift)
+			when String
+				acc + elm
+			else
+				raise "instructions def error"
+			end
 		end
 	end
 
-	def bin_of type, expr, option = nil
+	def bin_of type, expr
 		case type
 		when :reg
 			sprintf "%04b", expr.slice(2,2).to_i
-		when :int
-			ret = sprintf "%0#{option}b", expr.to_i
-			(expr.to_i > 0) ? ret : ret.sub("..","11")[-option,option]
 		when :lr
 			(expr == "l") ? "0" : "1"
-		when :LH
+		when :hl
 			(expr == "L") ? "0" : "1"
 		when :la
 			(expr == "logic") ? "00" : "01"
 		when :lb
 			sprintf "%017b", @labels[expr]
+		when :imm05
+			ret = sprintf "%05b", expr.to_i
+			(expr.to_i > 0) ? ret : ret.sub("..","11")[-5,5]
+		when :imm13
+			ret = sprintf "%013b", expr.to_i
+			(expr.to_i > 0) ? ret : ret.sub("..","11")[-13,13]
+		when :imm16
+			ret = sprintf "%016b", expr.to_i
+			(expr.to_i > 0) ? ret : ret.sub("..","11")[-16,16]
+		when :imm17
+			ret = sprintf "%017b", expr.to_i
+			(expr.to_i > 0) ? ret : ret.sub("..","11")[-17,17]
+		else
+			raise "unknown ope type: #{type}"
 		end
 	end
 
