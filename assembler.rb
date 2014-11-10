@@ -1,5 +1,5 @@
 class Assembler
-	load 'Settings.rb'
+	load 'settings.rb'
 	# extend Settings
 
 	def initialize
@@ -11,11 +11,14 @@ class Assembler
 
 	def run filename
 		src = File.read(filename)
-		src = "\tbeqi $r00 $r00 main\n" + src
+		src = "\tbeqi\t$r00, $r00, main\n" + src
 		@codes = src.split "\n"
 		pre_process
 		label_to_lmap
 		ascii = encode_lines
+                if $dbg == 1 
+                   p @labels
+                end
 		print bin2ascii(ascii)
 	end
 
@@ -65,8 +68,10 @@ class Assembler
 		ascii = ""
 		@codes.each_with_index do |code, i|
 			ascii << encode_line(code)
-			# p sprintf "%04d : %08x %s\n", i, encode_line(code).to_i(2), code.gsub(/( |\n|\n|\r|\t)+/," ")
-		end
+                  if $dbg == 1
+                    p sprintf "%04d : %08x %s", i, encode_line(code).to_i(2), code.gsub(/( |\n|\n|\r|\t)+/," ")
+                  end
+                end
 		return ascii
 	end 
 
@@ -132,7 +137,7 @@ class Assembler
 		when :hl
 			(expr == "L") ? "0" : "1"
 		when :la
-			(expr == "logic") ? "00" : "01"
+			(expr == "arith") ? "00" : "01"
 		when :imm05
 			ret = sprintf "%05b", expr.to_i
 			(expr.to_i > 0) ? ret : ret.sub("..","11")[-5,5]
@@ -140,11 +145,15 @@ class Assembler
 			ret = sprintf "%013b", expr.to_i
 			(expr.to_i > 0) ? ret : ret.sub("..","11")[-13,13]
 		when :imm16
+                        if @labels[expr]
+                          sprintf "%016b", @labels[expr]
+                        else
 			ret = sprintf "%016b", expr.to_i
 			(expr.to_i > 0) ? ret : ret.sub("..","11")[-16,16]
+                        end
 		when :imm17
 			if @labels[expr]
-				sprintf "%017b", @labels[expr]
+                          sprintf "%017b", @labels[expr]
 			else
 				ret = sprintf "%017b", expr.to_i
 				(expr.to_i > 0) ? ret : ret.sub("..","11")[-17,17]
@@ -153,7 +162,7 @@ class Assembler
 			ret = sprintf "%032b", expr.to_i
 			(expr.to_i > 0) ? ret : ret.sub("..","11")[-32,32]
 		when :immfl
-			[expr].pack('g').bytes.map{|n| "%08b" % n}.join
+			[expr.to_f].pack('g').bytes.map{|n| "%08b" % n}.join
 		else
 			raise "unknown operand type: #{type}"
 		end

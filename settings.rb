@@ -9,7 +9,7 @@ module Settings
 			call:	[	"addi	$r11,	$r15,	L,	16",
 						"store	$r11,	$r14,	0",
 						"addi	$r14,	$r14,	L,	4",
-						"beq	$r00,	$r00,	%1%"	],
+						"beqi	$r00,	$r00,	%1%"	],
 			ret:	[	"subi	$r14,	$r14,	4",
 						"load	$r15,	$r14,	0"	],
 			sll:	[	"shift	%1%,	%2%,	%3%,	0,	l,	logic"	],
@@ -28,7 +28,7 @@ module Settings
 		{
 			add:	[	"0000000",	:reg,	:reg,	:reg,	:imm13	],
 			addi:	[	"0000001",	:reg,	:reg,	:hl,	:imm16	],
-			sub:	[	"0000010",	:reg,	:reg,	:reg	],
+			sub:	[	"0000010",	:reg,	:reg,	:reg,   "0000000000000"	],
 			subi:	[	"0000011",	:reg,	:reg,	"0",	:imm16	],
 			not:	[	"0000100",	:reg,	:reg,	:reg,	"0000000000000"	],
 			and:	[	"0000110",	:reg,	:reg,	:reg,	"0000000000000"	],
