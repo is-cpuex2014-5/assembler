@@ -21,6 +21,8 @@ class Assembler
                 end
                 if $params['a']
                   print ascii
+                elsif $params['x']
+                  print ascii2hex(ascii)
                 else
                   print bin2ascii(ascii)
                 end
@@ -84,6 +86,17 @@ class Assembler
 		a = a.map { |s| ("0b" + s).to_i(0) }
 		ret = a.inject("") { |out, i | out += i.chr }
 	end
+        def ascii2hex str
+          a = str.scan(/.{1,4}/)
+          a.map! { |s| ("0b" + s).to_i(0) }
+          a.map! { |i| i.to_s(16) }
+          a.size.times { |i|
+                         if i % 8 == 7
+                           a[i] = a[i] + "\n"
+                         end
+                       }
+          a.inject("") { |out, s | out += s }
+        end
 
 	def remove_comment_of line
 		if line.index("#")

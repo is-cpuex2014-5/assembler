@@ -2,7 +2,7 @@
 
 # usage: ruby assemble testcode.s > a.out
 require 'optparse'
-$params = ARGV.getopts('ad')
+$params = ARGV.getopts('adx')
 require "#{File.dirname(__FILE__)}/assembler"
 as = Assembler.new
 print as.run(ARGV[0])
