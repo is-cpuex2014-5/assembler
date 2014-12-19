@@ -16,10 +16,14 @@ class Assembler
 		pre_process
 		label_to_lmap
 		ascii = encode_lines
-                if $dbg == 1 
+                if $params['d']
                    p @labels
                 end
-		print bin2ascii(ascii)
+                if $params['a']
+                  print ascii
+                else
+                  print bin2ascii(ascii)
+                end
 	end
 
 	def pre_process
@@ -68,17 +72,17 @@ class Assembler
 		ascii = ""
 		@codes.each_with_index do |code, i|
 			ascii << encode_line(code)
-                  if $dbg == 1
+                  if $params['d']
                     p sprintf "%04d : %08x %s", i, encode_line(code).to_i(2), code.gsub(/( |\n|\n|\r|\t)+/," ")
                   end
                 end
 		return ascii
-	end 
+	end
 
 	def bin2ascii str
 		a = str.scan(/.{1,8}/)
 		a = a.map { |s| ("0b" + s).to_i(0) }
-		ret = a.inject("") { |out, i | out += i.chr }  
+		ret = a.inject("") { |out, i | out += i.chr }
 	end
 
 	def remove_comment_of line

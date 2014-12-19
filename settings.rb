@@ -2,16 +2,20 @@ module Settings
 	def self.macros
 		{
 			mov:	[	"add	%1%,	%2%,	$r00,	0"	],
-			li:		[	"addi	%1%,	$r00,	L,	%2%"	],
+			li:	[	"addi	%1%,	$r00,	L,	%2%"	],
 			lis:	[	"addi	%1%,	$r00,	H,	%2%"	],
 			addil:	[	"addi	%1%,	%2%,	L,	%3%"	],
 			addih:	[	"addi	%1%,	%2%,	H,	%3%"	],
-			call:	[	"addi	$r11,	$r15,	L,	16",
-						"store	$r11,	$r14,	0",
-						"addi	$r14,	$r14,	L,	4",
-						"beqi	$r00,	$r00,	%1%"	],
-			ret:	[	"subi	$r14,	$r14,	4",
-						"load	$r15,	$r14,	0"	],
+			call:	[	"addi	$r11,	$r15,	L,	12",
+					"store	$r11,	$r14,	-4",
+					"beqi	$r00,	$r00,	%1%"	],
+			#call:	[	"addi	$r11,	$r15,	L,	16",
+			#		"store	$r11,	$r14,	 0",
+                        #                "addi   $r14,   $r14,   L,       4",
+			#		"beqi	$r00,	$r00,	%1%"	],
+			ret:	[	"load	$r15,	$r14,	-4"	],
+                        #ret:	[	"subi   $r14,   $r14,   4",
+                        #                "load	$r15,	$r14,	0"	],
 			sll:	[	"shift	%1%,	%2%,	%3%,	0,	l,	logic"	],
 			srl:	[	"shift	%1%,	%2%,	%3%,	0,	r,	logic"	],
 			sla:	[	"shift	%1%,	%2%,	%3%,	0,	l,	arith"	],
@@ -48,6 +52,9 @@ module Settings
 			itof:	[	"0101100",	:reg,	:reg,	"00000000000000000"	],
 			fneg:	[	"0101110",	:reg,	:reg,	"00000000000000000"	],
 			finv:	[	"0110000",	:reg,	:reg,	"00000000000000000"	],
+                        floor:  [       "0111000",      :reg,   :reg,	"00000000000000000"	], #for debug
+                        sin:    [       "0110001",      :reg,   :reg,	"00000000000000000"	], #for debug
+                        cos:    [       "0111010",      :reg,   :reg,	"00000000000000000"	], #for debug
 
 			beq:	[	"1000000",	:reg,	:reg,	:reg,	"0000000000000"	],
 			beqi:	[	"1000001",	:reg,	:reg,	:imm17	],
@@ -64,9 +71,9 @@ module Settings
 			fstore:	[	"1100110",	:reg,	:reg,	:imm17	],
 			loadr:	[	"1101000",	:reg,	:reg,	:reg,	"0000000000000"	],
 			storer:	[	"1101010",	:reg,	:reg,	:reg,	"0000000000000"	],
-			floadr:	[	"1101100",	:reg,	:reg,	:reg	],
-			fstorer:[	"1101110",	:reg,	:reg,	:reg	],
-	
+			floadr:	[	"1101100",	:reg,	:reg,	:reg,	"0000000000000" ],
+			fstorer:[	"1101110",	:reg,	:reg,	:reg,	"0000000000000" ],
+
 			read:	[	"1110000",	:reg,	"000000000000000000000"	],
 			write:	[	"1110001",	:reg,	"000000000000000000000"	],
 
