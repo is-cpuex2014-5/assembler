@@ -60,7 +60,7 @@ class Assembler
 		@codes.map! do |code|
 			case instruction_type_of(code)
 			when :label
-				@labels[code.split[0].chop] = address * 4
+				@labels[code.split[0].chop] = address
 				nil
 			when :native
 				address += 1
