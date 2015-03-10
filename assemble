@@ -1,8 +1,19 @@
 #!/usr/bin/env ruby
 
-# usage: ruby assemble testcode.s > a.out
+# usage: ruby assemble testcode.s lib.s > a.out
 require 'optparse'
-$params = ARGV.getopts('adx')
+opt = OptionParser.new
+opt.on('-a', '--ascii', 'prints the output in the form of ascii') {
+  |v| $a_mode = v
+}
+opt.on('-d', '--debug', 'prints debug information') {
+  |v| $d_mode =  v
+}
+opt.on('-x', '--hex', 'prints the output in the form of hexadecimal') {
+  |v| $x_mode = v
+}
+
 require "#{File.dirname(__FILE__)}/assembler"
+opt.parse!(ARGV)
 as = Assembler.new
-print as.run(ARGV[0])
+print as.run(ARGV)
