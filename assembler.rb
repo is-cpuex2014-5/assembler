@@ -9,19 +9,27 @@ class Assembler
 		@instructions = Settings.instructions
 	end
 
-	def run filename
-		src = File.read(filename)
+	def run filenames
+                if filenames.empty?
+                  STDERR.print "error: no file is passed\n"
+                  return
+                end
+		src = filenames.inject("") {|acc, file|
+                  acc = acc + File.read(file)}
 		src = "\tbeqi\t$r00, $r00, main\n" + src
+               if filenames.include?("globals.s")
+                 src = "\tcall\tinitialize\n" + src
+               end
 		@codes = src.split "\n"
 		pre_process
 		label_to_lmap
 		ascii = encode_lines
-                if $params['d']
+                if $d_mode
                    p @labels
                 end
-                if $params['a']
+                if $a_mode
                   print ascii
-                elsif $params['x']
+                elsif $x_mode
                   print ascii2hex(ascii)
                 else
                   print bin2ascii(ascii)
@@ -74,7 +82,7 @@ class Assembler
 		ascii = ""
 		@codes.each_with_index do |code, i|
 			ascii << encode_line(code)
-                  if $params['d']
+                  if $d_mode
                     p sprintf "%04d : %08x %s", i, encode_line(code).to_i(2), code.gsub(/( |\n|\n|\r|\t)+/," ")
                   end
                 end
